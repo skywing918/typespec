@@ -31,7 +31,7 @@ export function shouldInline(program: Program, type: Type): boolean {
   }
   switch (type.kind) {
     case "Model":
-      return !type.name || isTemplateInstance(type);
+      return !type.name || (isTemplateInstance(type) && type.name === "Record");
     case "Scalar":
       return program.checker.isStdType(type) || isTemplateInstance(type);
     case "Enum":

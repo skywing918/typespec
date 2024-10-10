@@ -1048,6 +1048,7 @@ function createOAPIEmitter(
         serviceNamespaceName: serviceNamespaceName,
         ignoreMetadataAnnotations: ignoreMetadataAnnotations ?? false,
         contentType,
+        forceRef: true,
       },
     }) as any;
   }

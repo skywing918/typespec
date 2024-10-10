@@ -22,6 +22,32 @@ export interface TypeNameOptions {
   printable?: boolean;
 }
 
+export function getModelNameForTemplateInstance(
+  model: Model,
+  options: TypeNameOptions | undefined,
+): string {
+  const nsPrefix = getNamespacePrefix(model.namespace, options);
+  if (model.name === "" && model.properties.size === 0) {
+    return "{}";
+  }
+  if (model.indexer && model.indexer.key.kind === "Scalar") {
+    if (model.name === "Array" && isInTypeSpecNamespace(model)) {
+      return `${getTypeName(model.indexer.value!, options)}[]`;
+    }
+  }
+
+  if (model.name === "") {
+    return (
+      nsPrefix +
+      `{ ${[...model.properties.values()].map((prop) => `${prop.name}: ${getTypeName(prop.type, options)}`).join(", ")} }`
+    );
+  }
+  const modelName = nsPrefix + getIdentifierName(model.name, options);
+
+  // regular old model.
+  return modelName;
+}
+
 export function getTypeName(type: Type, options?: TypeNameOptions): string {
   switch (type.kind) {
     case "Namespace":

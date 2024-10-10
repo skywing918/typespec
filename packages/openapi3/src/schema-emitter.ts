@@ -27,6 +27,7 @@ import {
   getEncode,
   getExamples,
   getFormat,
+  getFriendlyName,
   getKnownValues,
   getMaxItems,
   getMaxLength,
@@ -36,6 +37,7 @@ import {
   getMinLength,
   getMinValue,
   getMinValueExclusive,
+  getModelNameForTemplateInstance,
   getNamespaceFullName,
   getPattern,
   getSummary,
@@ -46,6 +48,7 @@ import {
   isNullType,
   isSecret,
   isTemplateDeclaration,
+  isTemplateInstance,
   resolveEncodedName,
   serializeValueAsJson,
 } from "@typespec/compiler";
@@ -554,7 +557,7 @@ export class OpenAPI3SchemaEmitter extends TypeEmitter<
           (schema instanceof Placeholder || "$ref" in schema) &&
           !(type && shouldInline(program, type))
         ) {
-          if (type && type.kind === "Model") {
+          if (type && (type.kind === "Model" || type.kind === "Scalar")) {
             return new ObjectBuilder({
               type: "object",
               allOf: B.array([schema]),
@@ -591,7 +594,7 @@ export class OpenAPI3SchemaEmitter extends TypeEmitter<
 
     const schema: OpenAPI3Schema = {
       [ofType]: schemaMembers.map((m) =>
-        wrapWithObjectBuilder(m, { mergeUnionWideConstraints: false }),
+        wrapWithObjectBuilder(m, { mergeUnionWideConstraints: nullable }),
       ),
     };
 
@@ -821,6 +824,8 @@ export class OpenAPI3SchemaEmitter extends TypeEmitter<
       };
     }
 
+    //const forceRef = this.emitter.getContext().forceRef ?? false;
+
     if (shouldInline(this.emitter.getProgram(), type)) {
       return this.#inlineType(type, schema);
     }
@@ -834,8 +839,15 @@ export class OpenAPI3SchemaEmitter extends TypeEmitter<
 
     const shouldAddSuffix = usage !== undefined && usage.size > 1;
     const visibility = this.#getVisibilityContext();
-    const fullName =
-      name + (shouldAddSuffix ? getVisibilitySuffix(visibility, Visibility.Read) : "");
+    let fullName = name + (shouldAddSuffix ? getVisibilitySuffix(visibility, Visibility.Read) : "");
+
+    if (
+      !getFriendlyName(this.emitter.getProgram(), type) &&
+      isTemplateInstance(type) &&
+      type.name !== "Record"
+    ) {
+      fullName = getModelNameForTemplateInstance(type as Model, this.#typeNameOptions());
+    }
 
     const decl = this.emitter.result.declaration(fullName, schema);
 
