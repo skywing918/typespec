@@ -1,3 +1,5 @@
+import { ISpectralDiagnostic, Spectral } from "@stoplight/spectral-core";
+import { bundleAndLoadRuleset } from "@stoplight/spectral-ruleset-bundler/with-loader";
 import {
   compilerAssert,
   createDiagnosticCollector,
@@ -656,6 +658,8 @@ function createOAPIEmitter(
           }
         }
       }
+      // Check with spectral to see if there are any errors
+      await validateOpenAPI3(root, service.type);
 
       return [root, diagnostics.diagnostics];
     } catch (err) {
@@ -1830,6 +1834,35 @@ function createOAPIEmitter(
           }),
         );
         return undefined;
+    }
+  }
+
+  async function validateOpenAPI3(root: OpenAPI3Document, serviceNamespace: Namespace) {
+    const jsonDoc = JSON.stringify(root);
+    const spectral = new Spectral();
+
+    // create a ruleset that extends the spectral:oas ruleset
+    const fs = {
+      promises: {
+        async readFile(): Promise<any> {
+          return `extends: spectral:oas`;
+        },
+      },
+    };
+
+    spectral.setRuleset(await bundleAndLoadRuleset("/osa.yaml", { fs, fetch }));
+
+    const result = await spectral.run(jsonDoc);
+    if (result.length > 0) {
+      result.forEach((r: ISpectralDiagnostic) => {
+        diagnostics.add(
+          createDiagnostic({
+            code: "spectral-warning",
+            format: { message: r.message },
+            target: serviceNamespace,
+          }),
+        );
+      });
     }
   }
 }

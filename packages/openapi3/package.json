@@ -59,6 +59,8 @@
   ],
   "dependencies": {
     "@readme/openapi-parser": "~2.6.0",
+    "@stoplight/spectral-core": "^1.19.3",
+    "@stoplight/spectral-ruleset-bundler": "^1.6.1",
     "yaml": "~2.5.1"
   },
   "peerDependencies": {
