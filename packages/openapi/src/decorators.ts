@@ -188,16 +188,16 @@ export const $info: InfoDecorator = (
   }
 
   // Validate the AdditionalInfo model
-  if (
-    !validateAdditionalInfoModel(
-      context.program,
-      context.getArgumentTarget(0)!,
-      data,
-      "TypeSpec.OpenAPI.AdditionalInfo",
-    )
-  ) {
-    return;
-  }
+  // if (
+  //   !validateAdditionalInfoModel(
+  //     context.program,
+  //     context.getArgumentTarget(0)!,
+  //     data,
+  //     "TypeSpec.OpenAPI.AdditionalInfo",
+  //   )
+  // ) {
+  //   return;
+  // }
 
   // Validate termsOfService
   if (data.termsOfService) {

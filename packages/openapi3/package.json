@@ -58,7 +58,10 @@
     "!dist/test/**"
   ],
   "dependencies": {
+    "@hyperjump/json-schema": "^1.9.9",
     "@readme/openapi-parser": "~2.6.0",
+    "js-yaml": "^4.1.0",
+    "undici": "^6.21.0",
     "yaml": "~2.5.1"
   },
   "peerDependencies": {
