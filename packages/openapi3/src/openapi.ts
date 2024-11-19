@@ -43,8 +43,6 @@ import {
   Type,
   TypeNameOptions,
 } from "@typespec/compiler";
-import ajv from "ajv";
-
 import { AssetEmitter, createAssetEmitter, EmitEntity } from "@typespec/compiler/emitter-framework";
 import {} from "@typespec/compiler/utils";
 import {
@@ -86,6 +84,8 @@ import {
   shouldInline,
 } from "@typespec/openapi";
 import { buildVersionProjections, VersionProjections } from "@typespec/versioning";
+import ajv from "ajv-draft-04";
+import ajvFormats from "ajv-formats";
 import { stringify } from "yaml";
 import { getRef } from "./decorators.js";
 import { applyEncoding } from "./encoding.js";
@@ -117,8 +117,8 @@ import {
 import { deepEquals, isSharedHttpOperation, SharedHttpOperation } from "./util.js";
 import { resolveVisibilityUsage, VisibilityUsageTracker } from "./visibility-usage.js";
 import { resolveXmlModule, XmlModule } from "./xml-module.js";
-
 const Ajv = ajv.default;
+
 const defaultFileType: FileType = "yaml";
 const defaultOptions = {
   "new-line": "lf",
@@ -673,30 +673,16 @@ function createOAPIEmitter(
 
   async function validateOpenAPI3(root: OpenAPI3Document, serviceNamespace: Namespace) {
     const ajv = new Ajv({});
+    ajvFormats.default(ajv);
     const schema = {
-      $schema: "http://json-schema.org/draft-07/schema#",
+      $schema: "http://json-schema.org/draft-04/schema",
       type: "object",
       properties: {
         openapi: {
           type: "string",
           enum: ["3.0.0", "3.0.1", "3.0.2", "3.0.3"],
         },
-        info: {
-          type: "object",
-          properties: {
-            title: {
-              type: "string",
-            },
-            version: {
-              type: "string",
-            },
-          },
-          patternProperties: {
-            "^x-": {},
-          },
-          additionalProperties: false,
-          required: ["title", "version"],
-        },
+        info: { $ref: "#/definitions/Info" },
         paths: {
           type: "object",
         },
@@ -706,12 +692,67 @@ function createOAPIEmitter(
       },
       required: ["openapi", "info", "paths"],
       definitions: {
-        Parameters: {
+        Info: {
           type: "object",
+          required: ["title", "version"],
+
+          properties: {
+            title: {
+              type: "string",
+            },
+            description: { type: "string" },
+            termsOfService: { type: "string", format: "uri-reference" },
+            contact: { $ref: "#/definitions/Contact" },
+            license: { $ref: "#/definitions/License" },
+            version: { type: "string" },
+          },
           patternProperties: {
-            "^[a-zA-Z0-9\\.\\-_]+$": {},
+            "^x-": {},
           },
           additionalProperties: false,
+        },
+        Contact: {
+          type: "object",
+          properties: {
+            name: {
+              type: "string",
+            },
+            url: {
+              type: "string",
+              format: "uri-reference",
+            },
+            email: {
+              type: "string",
+              format: "email",
+            },
+          },
+          patternProperties: {
+            "^x-": {},
+          },
+          additionalProperties: false,
+        },
+        License: {
+          type: "object",
+          required: ["name"],
+          properties: {
+            name: {
+              type: "string",
+            },
+            url: {
+              type: "string",
+              format: "uri-reference",
+            },
+          },
+          patternProperties: {
+            "^x-": {},
+          },
+          additionalProperties: false,
+        },
+        Parameters: {
+          type: "object",
+          propertyNames: {
+            pattern: "^[a-zA-Z0-9\\.\\-_]+$",
+          },
         },
         Components: {
           type: "object",
@@ -726,6 +767,7 @@ function createOAPIEmitter(
     const ajvValidate = ajv.compile(schema);
     const valid = ajvValidate(root);
     if (!valid) {
+      console.log(ajvValidate.errors);
       ajvValidate.errors?.forEach((error) => {
         diagnostics.add(
           createDiagnostic({

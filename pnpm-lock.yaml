@@ -883,6 +883,12 @@ importers:
       ajv:
         specifier: ~8.17.1
         version: 8.17.1
+      ajv-draft-04:
+        specifier: ^1.0.0
+        version: 1.0.0(ajv@8.17.1)
+      ajv-formats:
+        specifier: ~3.0.1
+        version: 3.0.1(ajv@8.17.1)
       yaml:
         specifier: ~2.5.1
         version: 2.5.1
