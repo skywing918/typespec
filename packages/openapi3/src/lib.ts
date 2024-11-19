@@ -281,6 +281,12 @@ export const libDef = {
         default: paramMessage`Invalid key '${"value"}' used in a fixed field of the Component object. Only alphanumerics, dot (.), hyphen (-), and underscore (_) characters are allowed in keys.`,
       },
     },
+    "3rd-party-validation-warning": {
+      severity: "warning",
+      messages: {
+        default: paramMessage`Message from 3rd-party-validation: "${"message"}".`,
+      },
+    },
   },
   emitter: {
     options: EmitterOptionsSchema as JSONSchemaType<OpenAPI3EmitterOptions>,

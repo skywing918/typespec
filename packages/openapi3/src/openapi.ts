@@ -43,6 +43,7 @@ import {
   Type,
   TypeNameOptions,
 } from "@typespec/compiler";
+import ajv from "ajv";
 
 import { AssetEmitter, createAssetEmitter, EmitEntity } from "@typespec/compiler/emitter-framework";
 import {} from "@typespec/compiler/utils";
@@ -117,6 +118,7 @@ import { deepEquals, isSharedHttpOperation, SharedHttpOperation } from "./util.j
 import { resolveVisibilityUsage, VisibilityUsageTracker } from "./visibility-usage.js";
 import { resolveXmlModule, XmlModule } from "./xml-module.js";
 
+const Ajv = ajv.default;
 const defaultFileType: FileType = "yaml";
 const defaultOptions = {
   "new-line": "lf",
@@ -656,7 +658,7 @@ function createOAPIEmitter(
           }
         }
       }
-
+      await validateOpenAPI3(root, service.type);
       return [root, diagnostics.diagnostics];
     } catch (err) {
       if (err instanceof ErrorTypeFoundError) {
@@ -666,6 +668,73 @@ function createOAPIEmitter(
       } else {
         throw err;
       }
+    }
+  }
+
+  async function validateOpenAPI3(root: OpenAPI3Document, serviceNamespace: Namespace) {
+    const ajv = new Ajv({});
+    const schema = {
+      $schema: "http://json-schema.org/draft-07/schema#",
+      type: "object",
+      properties: {
+        openapi: {
+          type: "string",
+          enum: ["3.0.0", "3.0.1", "3.0.2", "3.0.3"],
+        },
+        info: {
+          type: "object",
+          properties: {
+            title: {
+              type: "string",
+            },
+            version: {
+              type: "string",
+            },
+          },
+          patternProperties: {
+            "^x-": {},
+          },
+          additionalProperties: false,
+          required: ["title", "version"],
+        },
+        paths: {
+          type: "object",
+        },
+        components: {
+          $ref: "#/definitions/Components",
+        },
+      },
+      required: ["openapi", "info", "paths"],
+      definitions: {
+        Parameters: {
+          type: "object",
+          patternProperties: {
+            "^[a-zA-Z0-9\\.\\-_]+$": {},
+          },
+          additionalProperties: false,
+        },
+        Components: {
+          type: "object",
+          properties: {
+            parameters: {
+              $ref: "#/definitions/Parameters",
+            },
+          },
+        },
+      },
+    };
+    const ajvValidate = ajv.compile(schema);
+    const valid = ajvValidate(root);
+    if (!valid) {
+      ajvValidate.errors?.forEach((error) => {
+        diagnostics.add(
+          createDiagnostic({
+            code: "3rd-party-validation-warning",
+            format: { message: error?.message || "" },
+            target: serviceNamespace,
+          }),
+        );
+      });
     }
   }
 
