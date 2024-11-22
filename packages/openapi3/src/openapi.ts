@@ -673,66 +673,20 @@ function createOAPIEmitter(
   }
 
   async function validateOpenAPI3(root: OpenAPI3Document, serviceNamespace: Namespace) {
-    const data = {
-      openapi: "3.0.0",
-      info: {
-        title: "Example API",
-        description: "This is an example API",
-        version: "1.0.0",
-      },
-      servers: [
-        {
-          url: "https://api.example.com/v1",
-        },
-      ],
-      paths: {
-        "/users": {
-          get: {
-            summary: "Get all users",
-            responses: {
-              "200": {
-                description: "A list of users",
-                content: {
-                  "application/json": {
-                    schema: {
-                      type: "array",
-                      items: {
-                        $ref: "#/components/schemas/User",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      components: {
-        schemas: {
-          User: {
-            type: "object",
-            properties: {
-              id: {
-                type: "integer",
-              },
-              name: {
-                type: "string",
-              },
-            },
-          },
-        },
-      },
-    };
-
     const jsonDoc = JSON.stringify(root);
     const openapi = JSON.parse(jsonDoc);
+
+    // addKeyword(schema, "myNewKeyword", {
+    //   type: "string",
+    //   description: "This is my new keyword",
+    // });
     const result = await validate("https://spec.openapis.org/oas/3.0/schema", openapi, BASIC);
 
     if (!result.valid) {
       result.errors?.forEach((r) => {
         diagnostics.add(
           createDiagnostic({
-            code: "spectral-warning",
+            code: "3rd-party-warning",
             format: { message: JSON.stringify(r) },
             target: serviceNamespace,
           }),

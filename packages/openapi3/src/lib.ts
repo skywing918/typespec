@@ -281,10 +281,10 @@ export const libDef = {
         default: paramMessage`Invalid key '${"value"}' used in a fixed field of the Component object. Only alphanumerics, dot (.), hyphen (-), and underscore (_) characters are allowed in keys.`,
       },
     },
-    "spectral-warning": {
+    "3rd-party-warning": {
       severity: "warning",
       messages: {
-        default: paramMessage`Message from spectral: "${"message"}".`,
+        default: paramMessage`Message from 3rd-party: "${"message"}".`,
       },
     },
   },
