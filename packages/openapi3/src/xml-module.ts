@@ -1,23 +1,22 @@
 import {
   ArrayModelType,
-  IntrinsicScalarName,
+  Enum,
+  isArrayModelType,
   Model,
   ModelProperty,
   Program,
-  Scalar,
-  isArrayModelType,
   resolveEncodedName,
+  Scalar,
 } from "@typespec/compiler";
 import { ArrayBuilder, ObjectBuilder } from "@typespec/compiler/emitter-framework";
 import { reportDiagnostic } from "./lib.js";
 import { ResolvedOpenAPI3EmitterOptions } from "./openapi.js";
-import { getSchemaForStdScalars } from "./std-scalar-schemas.js";
 import { OpenAPI3Schema, OpenAPI3XmlSchema, OpenAPISchema3_1 } from "./types.js";
 
 export interface XmlModule {
   attachXmlObjectForScalarOrModel(
     program: Program,
-    type: Scalar | Model,
+    type: Scalar | Model | Enum,
     emitObject: OpenAPI3Schema | OpenAPISchema3_1,
   ): void;
 
@@ -37,7 +36,7 @@ export async function resolveXmlModule(): Promise<XmlModule | undefined> {
   return {
     attachXmlObjectForScalarOrModel: (
       program: Program,
-      type: Scalar | Model,
+      type: Scalar | Model | Enum,
       emitObject: OpenAPI3Schema | OpenAPISchema3_1,
     ) => {
       const isXmlModel = isXmlModelChecker(program, type, []);
@@ -122,19 +121,11 @@ export async function resolveXmlModule(): Promise<XmlModule | undefined> {
         const propXmlName = hasUnwrappedDecorator
           ? xmlName
           : resolveEncodedName(program, propValue as Scalar | Model, "application/xml");
-        if (propValue.kind === "Scalar") {
-          let scalarSchema: OpenAPI3Schema = {};
-          const isStd = program.checker.isStdType(propValue);
-          if (isStd) {
-            scalarSchema = getSchemaForStdScalars(propValue, options);
-          } else if (propValue.baseScalar) {
-            scalarSchema = getSchemaForStdScalars(
-              propValue.baseScalar as Scalar & { name: IntrinsicScalarName },
-              options,
-            );
-          }
-          scalarSchema.xml = { name: propXmlName };
-          refSchema.items = scalarSchema;
+        if ("type" in refSchema.items) {
+          refSchema.items = new ObjectBuilder({
+            ...refSchema.items,
+            xml: { name: propXmlName },
+          });
         } else {
           const items = new ArrayBuilder();
           items.push(refSchema.items);
@@ -150,7 +141,7 @@ export async function resolveXmlModule(): Promise<XmlModule | undefined> {
         }
       }
 
-      if (!isArrayProperty && !refSchema.type && !isAttribute) {
+      if (!isArrayProperty && !refSchema.type) {
         emitObject.allOf = new ArrayBuilder();
         emitObject.allOf.push(refSchema);
         xmlObject.name = xmlName;
@@ -171,7 +162,7 @@ export async function resolveXmlModule(): Promise<XmlModule | undefined> {
 
 function isXmlModelChecker(
   program: Program,
-  model: Scalar | Model | ModelProperty,
+  model: Scalar | Model | ModelProperty | Enum,
   checked: string[],
 ): boolean {
   if (model.decorators && model.decorators.some((d) => d.definition?.namespace.name === "Xml")) {

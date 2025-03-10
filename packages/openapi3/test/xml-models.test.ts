@@ -1166,25 +1166,44 @@ worksFor(["3.0.0", "3.1.0"], ({ emitOpenApiWithDiagnostics, oapiForModel }) => {
     const res = await oapiForModel(
       "Author",
       `
-      model Book {
-        author: Author[];
+      @name("xmlTestEnum")
+      enum Author { y: "y" };
+    `,
+    );
+
+    deepStrictEqual(res.schemas.Author, {
+      enum: ["y"],
+      type: "string",
+      xml: {
+        name: "xmlTestEnum",
+      },
+    });
+  });
+
+  it("test1.", async () => {
+    const res = await oapiForModel(
+      "Author",
+      `
+      model Author {
+        @attribute
+        status: EnumStatus
       }
 
-      model Author {
-      book?: Book[];
-    }`,
+      enum EnumStatus {   
+        "active","inactive"
+      }
+    `,
     );
 
     deepStrictEqual(res.schemas.Author, {
       properties: {
-        book: {
-          items: {
-            $ref: "#/components/schemas/Book",
-          },
-          type: "array",
+        status: {
+          allOf: [{ $ref: "#/components/schemas/EnumStatus" }],
+          xml: { name: "status", attribute: true },
         },
       },
       type: "object",
+      required: ["status"],
     });
   });
 });
